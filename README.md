@@ -25,6 +25,13 @@ GND     -> GND
 ```
 More details about wiring in library this tool is using for connecting with CC1101: https://github.com/LSatan/SmartRC-CC1101-Driver-Lib
 
+
+## Building and usage
+The app is based on PlatformIO and is build through PlatformIO's toolchain.
+
+Some config entries are hardcoded (it's a simple tool - told you ;) ) so in order to use them please copy `hardcoded_config_template.cpp.source` and rename it to `hardcoded_config.cpp`. Required parameters:
+- Water meter ID - can be read on the meter itself
+
 ## Related materials:
 - Application note on using CC1101 with Wirless MBUS: https://www.ti.com/lit/an/swra234a/swra234a.pdf
 - CULFW source code: https://github.com/heliflieger/a-culfw/

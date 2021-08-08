@@ -2,6 +2,8 @@
 #include "wmbus_t_cc1101_config.h"
 #include "izar_utils.h"
 
+extern uint8_t meterId[];
+
 
 void setup() {
     Serial.begin(9600);
@@ -32,10 +34,6 @@ void setup() {
 
     Serial.println("device initialized");
 }
-
-
-
-
 
 
 uint8_t ReceiveData2(byte *rxBuffer)
@@ -76,6 +74,13 @@ void loop() {
                 decodeerrors++;
             }
             MBPlen+=2;
+        }
+
+        for(int i=0; i<4;i++){
+            if(meterId[i] != decoded[7-i]) {
+                //not our meter, escape!
+                return;
+            }
         }
 
         Serial.print("Meter ID");
