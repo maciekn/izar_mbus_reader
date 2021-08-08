@@ -46,28 +46,25 @@ uint8_t IzarWmbus::ReceiveData2(byte* rxBuffer) {
     return size;
 }
 
-uint8_t buffer[500] = {0};
-uint8_t decoded[291];
+uint8_t buffer[128] = {0};
+uint8_t decoded[64] = {0};
+uint8_t decrypted[64] = {0};
 
-FetchResult IzarWmbus::fetchPacket() {
+
+FetchResult IzarWmbus::fetchPacket(IzarResultData* data) {
     if (ELECHOUSE_cc1101.CheckRxFifo(0)) {
         uint8_t len = ReceiveData2(buffer);
-        bool print_telegrams = 0;
-        bool print_decoded = 0;
+        uint8_t decodeErrors = 0;
+        int decodedLen = decode3outOf6(buffer, len, decoded, decodeErrors);
 
-        int MBPlen = 0;
-        int decodeerrors = 0;
-        for (int i = 0; i <= len - 3; i += 3) {
-            if (decode3of6(buffer + i, decoded + MBPlen) == -1) {
-                decodeerrors++;
-            }
-            MBPlen += 2;
+        if (decodeErrors != 0) {
+            return FETCH_3OF6_ERROR;
         }
 
         uint32_t thisMeterId = uintFromBytesLittleEndian(decoded + 4);
 
         if (waterMeterId != 0) {
-            if(thisMeterId != waterMeterId) {
+            if (thisMeterId != waterMeterId) {
                 return FETCH_OTHER_METER;
             }
         } else {
@@ -75,43 +72,48 @@ FetchResult IzarWmbus::fetchPacket() {
             Serial.println(thisMeterId, HEX);
         }
 
+        data->meterId = thisMeterId;
+
         // for some reason decoded[10] and [11] are no part of the frame
         // TODO - find why!!!
-        uint8_t frame[30];
-        int framelen = 0;
-        for (int i = 0; i < MBPlen; i++) {
-            if (i != 10 && i != 11) {
-                frame[framelen++] = decoded[i];
-            }
+        for (int i = 12; i < decodedLen; i++) {
+            decoded[i-2] = decoded[i];
         }
+        decoded[decodedLen-1] = 0;
+        decoded[decodedLen] = 0;
+        decodedLen -= 2;
 
-        Serial.println(framelen);
-
-        if (!decodeerrors) {
-            uint8_t decrypted[30] = {0};
-            uint8_t decrypted_size = decrypt(frame, framelen, decrypted);
-            if (print_telegrams) {
-                for (int i = 0; i < MBPlen; i++) {
-                    Serial.print(decoded[i], HEX);
-                    Serial.print(" ");
-                }
-                Serial.println();
+        uint8_t decrypted_size = decrypt(decoded, decodedLen, decrypted);
+        if (print_telegrams) {
+            for (int i = 0; i < decodedLen; i++) {
+                Serial.print(decoded[i], HEX);
+                Serial.print(" ");
             }
-            if (print_decoded) {
-                for (int i = 0; i < decrypted_size; i++) {
-                    Serial.print(decrypted[i], HEX);
-                    Serial.print(" ");
-                }
-                Serial.println();
-            }
-            Serial.println(uintFromBytesLittleEndian(decrypted + 1));
-        } else {
-            Serial.print("Decoding went wrong!: ");
-            Serial.println(decodeerrors);
+            Serial.println();
         }
+        if (print_decoded) {
+            for (int i = 0; i < decrypted_size; i++) {
+                Serial.print(decrypted[i], HEX);
+                Serial.print(" ");
+            }
+            Serial.println();
+        }
+        data->waterUsage = uintFromBytesLittleEndian(decrypted + 1);
 
         return FETCH_SUCCESSFUL;
     } else {
         return FETCH_NO_DATA;
     }
+}
+
+int IzarWmbus::decode3outOf6(uint8_t* input, const uint8_t inputLen,
+                             uint8_t* output, uint8_t& errors) {
+    int i = 0;
+    errors = 0;
+    for (i = 0; i < inputLen / 3; i++) {
+        if (decode3of6Single(buffer + (i * 3), decoded + (i * 2)) == -1) {
+            errors++;
+        }
+    }
+    return i*2;
 }

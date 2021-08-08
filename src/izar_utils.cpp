@@ -39,7 +39,7 @@ uint32_t hashShiftKey(uint32_t key) {
     return key;
 }
 
-uint8_t decode3of6(uint8_t* encoded, uint8_t* decoded) {
+uint8_t decode3of6Single(uint8_t* encoded, uint8_t* decoded) {
     uint8_t data[4];
 
     data[0] = decoder[encoded[2] & 0x3F];
