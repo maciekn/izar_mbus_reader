@@ -62,7 +62,7 @@ uint8_t decode3of6(uint8_t* encoded, uint8_t* decoded) {
 
 uint8_t decrypt(uint8_t* encoded, uint8_t len, uint8_t* decoded) {
     if (len < 15) {
-        return -5;
+        return 0;
     }
 
     uint32_t key = 0xdfd109e8;
@@ -77,8 +77,8 @@ uint8_t decrypt(uint8_t* encoded, uint8_t len, uint8_t* decoded) {
     }
 
     if (decoded[0] != 0x4B) {
-        return -1;
+        return 0;
     }
 
-    return 0;
+    return size;
 }
