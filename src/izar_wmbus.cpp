@@ -50,11 +50,22 @@ uint8_t buffer[128] = {0};
 uint8_t decoded[64] = {0};
 uint8_t decrypted[64] = {0};
 
+inline void dumpHex(uint8_t* data, int len) {
+    for (int i = 0; i < len; i++) {
+        Serial.print(data[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+}
 
 FetchResult IzarWmbus::fetchPacket(IzarResultData* data) {
     if (ELECHOUSE_cc1101.CheckRxFifo(0)) {
+        //====READ====
         uint8_t len = ReceiveData2(buffer);
         uint8_t decodeErrors = 0;
+
+
+        //====DECODE====
         int decodedLen = decode3outOf6(buffer, len, decoded, decodeErrors);
 
         if (decodeErrors != 0) {
@@ -77,27 +88,22 @@ FetchResult IzarWmbus::fetchPacket(IzarResultData* data) {
         // for some reason decoded[10] and [11] are no part of the frame
         // TODO - find why!!!
         for (int i = 12; i < decodedLen; i++) {
-            decoded[i-2] = decoded[i];
+            decoded[i - 2] = decoded[i];
         }
-        decoded[decodedLen-1] = 0;
+        decoded[decodedLen - 1] = 0;
         decoded[decodedLen] = 0;
         decodedLen -= 2;
 
-        uint8_t decrypted_size = decrypt(decoded, decodedLen, decrypted);
+        //====DECRYPT====
+        uint8_t decryptedLen = decrypt(decoded, decodedLen, decrypted);
+
         if (print_telegrams) {
-            for (int i = 0; i < decodedLen; i++) {
-                Serial.print(decoded[i], HEX);
-                Serial.print(" ");
-            }
-            Serial.println();
+            dumpHex(decoded, decodedLen);
         }
         if (print_decoded) {
-            for (int i = 0; i < decrypted_size; i++) {
-                Serial.print(decrypted[i], HEX);
-                Serial.print(" ");
-            }
-            Serial.println();
+            dumpHex(decrypted, decryptedLen);
         }
+
         data->waterUsage = uintFromBytesLittleEndian(decrypted + 1);
 
         return FETCH_SUCCESSFUL;
@@ -115,5 +121,5 @@ int IzarWmbus::decode3outOf6(uint8_t* input, const uint8_t inputLen,
             errors++;
         }
     }
-    return i*2;
+    return i * 2;
 }
