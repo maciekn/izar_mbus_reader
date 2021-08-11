@@ -1,3 +1,7 @@
 #include <Arduino.h>
 
 uint32_t meterId = 0x12345678;
+const char* ssid = "wifi";
+const char* password =  "pass";
+const char* mqttServer = "localhost";
+int mqttPort = 37181;
