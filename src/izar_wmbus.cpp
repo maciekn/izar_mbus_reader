@@ -112,6 +112,14 @@ FetchResult IzarWmbus::fetchPacket(IzarResultData* data) {
     }
 }
 
+
+//
+void IzarWmbus::ensureRx() {
+    if((ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) & 0x0F) == 0x01) {
+        ELECHOUSE_cc1101.SetRx();
+    }
+}
+
 int IzarWmbus::decode3outOf6(uint8_t* input, const uint8_t inputLen,
                              uint8_t* output, uint8_t& errors) {
     int i = 0;

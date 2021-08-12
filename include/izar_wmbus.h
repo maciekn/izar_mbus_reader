@@ -18,6 +18,7 @@ class IzarWmbus {
     public:
         void init(uint32_t waterMeter);
         FetchResult fetchPacket(IzarResultData* data);
+        void ensureRx();
 
     private:
         uint8_t ReceiveData2(byte *rxBuffer);

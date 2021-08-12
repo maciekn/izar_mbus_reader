@@ -81,5 +81,6 @@ void loop() {
         Serial.println(data.waterUsage);
     } else {
         delay(300);
+        reader.ensureRx();
     }
 }
