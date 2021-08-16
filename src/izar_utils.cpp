@@ -2,6 +2,9 @@
 
 #include <Arduino.h>
 
+#define CRC_POLYNOM 0x3D65
+
+
 const uint8_t decoder[] = {
     0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
     0xFF,0xFF,0xFF,0x03,0xFF,0x01,0x02,0xFF,
@@ -26,6 +29,12 @@ uint32_t uintFromBytesLittleEndian(uint8_t* data) {
     result += data[2] << 16;
     result += data[1] << 8;
     result += data[0];
+    return result;
+}
+
+uint16_t uint16FromBytes(uint8_t* data) {
+    uint16_t result = data[0] << 8;
+    result += data[1];
     return result;
 }
 
@@ -81,4 +90,18 @@ uint8_t decrypt(uint8_t* encoded, uint8_t len, uint8_t* decoded) {
     }
 
     return size;
+}
+
+uint16_t crc16(uint16_t crcVal, uint8_t dataByte) {
+    for (int i = 0; i < 8; i++) {
+        if (((crcVal & 0x8000) >> 8) ^ (dataByte & 0x80)) {
+            crcVal = (crcVal << 1) ^ CRC_POLYNOM;
+        } else {
+            crcVal = (crcVal << 1);
+        }
+
+        dataByte <<= 1;
+    }
+
+    return crcVal;
 }

@@ -58,6 +58,45 @@ inline void dumpHex(uint8_t* data, int len) {
     Serial.println();
 }
 
+bool IzarWmbus::checkCRCForSection(uint8_t* section, uint8_t sectionLen) {
+    uint16_t crc = 0;
+    for (int i = 0; i < sectionLen; i++) {
+        crc = crc16(crc, section[i]);
+    }
+    crc = ~crc;
+    return uint16FromBytes(section + sectionLen) == crc;
+}
+
+bool IzarWmbus::checkCRC(uint8_t* packet, uint8_t len) {
+    if (!checkCRCForSection(packet, 10)) {
+        return false;
+    }
+
+    for (int i = 12; i < len; i += 18) {
+        uint8_t sectionLength = 16;
+        // do we have full section?
+        if (i + 18 > len) {
+            sectionLength = len - i - 2;
+        }
+
+        if (!checkCRCForSection(packet + i, sectionLength)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+int calculateBytesLengthBasedOnDataLength(int size) {
+    int sections = ((size - 9) / 16);
+    if ((size - 9) % 16) {
+        sections++;
+    }
+
+    // 12 = 10 header (incl size byte) + 2 CRC
+    return 12 + sections * 18;
+}
+
 FetchResult IzarWmbus::fetchPacket(IzarResultData* data) {
     if (ELECHOUSE_cc1101.CheckRxFifo(0)) {
         //====READ====
@@ -68,8 +107,14 @@ FetchResult IzarWmbus::fetchPacket(IzarResultData* data) {
         //====DECODE====
         int decodedLen = decode3outOf6(buffer, len, decoded, decodeErrors);
 
+        decodedLen = calculateBytesLengthBasedOnDataLength(decoded[0]);
+
         if (decodeErrors != 0) {
             return FETCH_3OF6_ERROR;
+        }
+
+        if (!checkCRC(decoded, decodedLen)) {
+            return FETCH_CRC_ERROR;
         }
 
         uint32_t thisMeterId = uintFromBytesLittleEndian(decoded + 4);
@@ -85,8 +130,7 @@ FetchResult IzarWmbus::fetchPacket(IzarResultData* data) {
 
         data->meterId = thisMeterId;
 
-        // for some reason decoded[10] and [11] are no part of the frame
-        // TODO - find why!!!
+        // strip out WMBUS CRC for decryption
         for (int i = 12; i < decodedLen; i++) {
             decoded[i - 2] = decoded[i];
         }
@@ -112,10 +156,9 @@ FetchResult IzarWmbus::fetchPacket(IzarResultData* data) {
     }
 }
 
-
 //
 void IzarWmbus::ensureRx() {
-    if((ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) & 0x0F) == 0x01) {
+    if ((ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) & 0x0F) == 0x01) {
         ELECHOUSE_cc1101.SetRx();
     }
 }

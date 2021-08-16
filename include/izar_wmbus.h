@@ -6,7 +6,8 @@ enum FetchResult {
     FETCH_SUCCESSFUL,
     FETCH_NO_DATA,
     FETCH_OTHER_METER,
-    FETCH_3OF6_ERROR
+    FETCH_3OF6_ERROR,
+    FETCH_CRC_ERROR
 };
 
 struct IzarResultData {
@@ -26,6 +27,8 @@ class IzarWmbus {
         const bool print_telegrams = 0;
         const bool print_decoded = 0;
         static int decode3outOf6(uint8_t* input, uint8_t inputLen, uint8_t* output, uint8_t& errors);
+        bool checkCRCForSection(uint8_t* section, uint8_t sectionLen);
+        bool checkCRC(uint8_t* packet, uint8_t len);
 
 };
 
