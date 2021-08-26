@@ -103,7 +103,6 @@ FetchResult IzarWmbus::fetchPacket(IzarResultData* data) {
         uint8_t len = ReceiveData2(buffer);
         uint8_t decodeErrors = 0;
 
-
         //====DECODE====
         int decodedLen = decode3outOf6(buffer, len, decoded, decodeErrors);
 
@@ -123,9 +122,6 @@ FetchResult IzarWmbus::fetchPacket(IzarResultData* data) {
             if (thisMeterId != waterMeterId) {
                 return FETCH_OTHER_METER;
             }
-        } else {
-            Serial.print("Meter ID: ");
-            Serial.println(thisMeterId, HEX);
         }
 
         data->meterId = thisMeterId;
@@ -150,13 +146,35 @@ FetchResult IzarWmbus::fetchPacket(IzarResultData* data) {
 
         data->waterUsage = uintFromBytesLittleEndian(decrypted + 1);
 
+        if (!isSensibleResult(data)) {
+            return FETCH_NON_SENSIBLE_DATA;
+        }
+
         return FETCH_SUCCESSFUL;
     } else {
         return FETCH_NO_DATA;
     }
 }
 
-//
+bool IzarWmbus::isSensibleResult(IzarResultData* data) {
+    auto hasLastUsage = lastResults.find(data->waterUsage);
+
+    if (hasLastUsage == lastResults.end()) {
+        lastResults[data->meterId] = data->waterUsage;
+    }
+
+    long int diff = lastResults[data->meterId];
+    diff -= data->waterUsage;
+
+    lastResults[data->meterId] = data->waterUsage;
+
+    if (-SENSIBLE_RESULT_THRESHOLD < diff && diff < SENSIBLE_RESULT_THRESHOLD) {
+        return true;
+    }
+
+    return false;
+}
+
 void IzarWmbus::ensureRx() {
     if ((ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) & 0x0F) == 0x01) {
         ELECHOUSE_cc1101.SetRx();

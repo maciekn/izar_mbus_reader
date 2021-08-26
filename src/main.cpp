@@ -1,7 +1,8 @@
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
-#include <ArduinoJson.h>
+
 
 #include "izar_wmbus.h"
 
@@ -38,7 +39,8 @@ void reconnect() {
 
 void setup() {
     Serial.begin(9600);
-    reader.init(meterId);
+    // reader.init(meterId);
+    reader.init(0);
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
@@ -57,23 +59,21 @@ void setup() {
 }
 
 IzarResultData data;
+StaticJsonDocument<200> doc;
 
 void loop() {
     if (!client.connected()) {
         reconnect();
     }
     client.loop();
-
-
-    if (reader.fetchPacket(&data) == FETCH_SUCCESSFUL) {
-        StaticJsonDocument<200> doc;
+    FetchResult result = reader.fetchPacket(&data);
+    if (result == FETCH_SUCCESSFUL) {
         doc["meter"] = data.meterId;
         doc["usg"] = data.waterUsage;
         char buffer[256];
         size_t n = serializeJson(doc, buffer);
         client.publish("water/consumption", buffer, n);
-
-
+        
         Serial.print("WatermeterId: ");
         Serial.println(data.meterId, HEX);
 
@@ -81,6 +81,6 @@ void loop() {
         Serial.println(data.waterUsage);
     } else {
         delay(300);
-        reader.ensureRx();
+        reader.ensureRx(); 
     }
 }
