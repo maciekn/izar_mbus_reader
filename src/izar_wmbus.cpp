@@ -7,6 +7,10 @@
 #include "wmbus_t_cc1101_config.h"
 
 void IzarWmbus::init(uint32_t waterMeter) {
+    #ifdef ESP32
+    ELECHOUSE_cc1101.setSpiPin(14, 12, 13, 15);
+    #endif
+
     if (waterMeter != 0) {
         waterMeterId = waterMeter;
     }

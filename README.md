@@ -13,6 +13,7 @@ I was able to use CC1101 board tuned for 433MHz correctly, though ;)
 
 
 ## Wiring
+###  ESP8266
 ```
 CC1101  -> NodeMCU
 ==================
@@ -23,6 +24,28 @@ CSN     -> D8
 VCC     -> 3V
 GND     -> GND
 ```
+
+### ESP32-CAM
+My main challenge with wiring ESP32-CAM was use of the default SPI connection by camera module, so I had to divert to other pin set
+```
+
+CC1101  -> ESP32(left side)
+============================
+           5V
+           GND
+MISO    -> GPIO12
+MOSI    -> GPIO13
+CSN     -> GPIO15
+SCK     -> GPIO14
+           GPIO2
+           GPIO4
+
+
+(right side)
+VCC     -> 3V3
+GDN     -> GND
+```
+
 More details about wiring in library this tool is using for connecting with CC1101: https://github.com/LSatan/SmartRC-CC1101-Driver-Lib
 
 
