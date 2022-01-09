@@ -1,0 +1,3 @@
+[submodule "lib/izar-wmbus"]
+	path = lib/izar-wmbus
+	url = git@github.com:maciekn/izar-wmbus-esp.git
